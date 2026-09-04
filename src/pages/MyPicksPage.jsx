@@ -73,26 +73,7 @@ ${window.location.origin}/predictions`;
             </p>
           </div>
 
-          {picks.length > 0 && (
-  <div className="flex items-center gap-2">
-    <button
-      onClick={handleShare}
-      className="flex items-center gap-2 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-3 text-sm font-black text-lime-400 transition hover:bg-lime-400/20"
-    >
-      <Share2 size={17} />
-      <span className="hidden sm:inline">Share Picks</span>
-      <span className="sm:hidden">Share</span>
-    </button>
-
-    <button
-      onClick={handlePrint}
-      className="hidden items-center gap-2 rounded-xl bg-lime-400 px-4 py-3 text-sm font-black text-black shadow-lg shadow-lime-400/10 transition hover:bg-lime-300 sm:flex"
-    >
-      <Printer size={17} />
-      Print Ticket
-    </button>
-  </div>
-)}
+ 
         </div>
 
         {/* Empty State */}
@@ -340,32 +321,37 @@ ${window.location.origin}/predictions`;
             </div>
 
             {/* Mobile Print Button */}
-            <button
-              onClick={handlePrint}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-lime-400 px-5 py-3 text-sm font-black text-black transition hover:bg-lime-300 sm:hidden print:hidden"
-            >
-              <Printer size={16} />
-              Print Ticket
-            </button>
+           
 
             {/* Bottom Controls */}
-            <div className="mt-5 flex items-center justify-between print:hidden">
-              <button
-                onClick={clearPicks}
-                className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-bold text-gray-500 transition hover:text-red-400"
-              >
-                <Trash2 size={15} />
-                Clear All Picks
-              </button>
+            {/* Bottom Controls */}
+<div className="mt-5 flex flex-col gap-3 print:hidden sm:flex-row sm:items-center sm:justify-between">
+  <button
+    onClick={clearPicks}
+    className="flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-bold text-gray-500 transition hover:bg-red-400/10 hover:text-red-400 sm:justify-start"
+  >
+    <Trash2 size={15} />
+    Clear All Picks
+  </button>
 
-              <button
-                onClick={handlePrint}
-                className="hidden items-center gap-2 rounded-xl bg-lime-400 px-5 py-3 text-sm font-black text-black transition hover:bg-lime-300 sm:flex"
-              >
-                <Printer size={16} />
-                Print Ticket
-              </button>
-            </div>
+  <div className="flex w-full gap-2 sm:w-auto">
+    <button
+      onClick={handleShare}
+      className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-lime-400/20 bg-lime-400/10 px-5 py-3 text-sm font-black text-lime-400 transition hover:bg-lime-400/20 sm:flex-none"
+    >
+      <Share2 size={16} />
+      Share Picks
+    </button>
+
+    <button
+      onClick={handlePrint}
+      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-lime-400 px-5 py-3 text-sm font-black text-black transition hover:bg-lime-300 sm:flex-none"
+    >
+      <Printer size={16} />
+      Print Ticket
+    </button>
+  </div>
+</div>
           </>
         )}
       </div>
