@@ -1,5 +1,5 @@
 
-import { ArrowRight, Lock, TrendingUp } from "lucide-react";
+import { ArrowRight, Lock, Share2, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import teams from "../data/teams";
 import { usePicks } from "../context/PicksContext";
@@ -75,7 +75,36 @@ const handleRemovePick = () => {
   removePick(id);
 };
 
-   
+   const handleShare = async () => {
+  const shareText = `⚽ ${homeName} vs ${awayName}
+
+🔮 Prediction: ${prediction}
+📊 Confidence: ${confidence}%
+🏆 ${league}
+
+Check the full prediction:
+${window.location.origin}/predictions/${id}`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `${homeName} vs ${awayName}`,
+        text: shareText,
+        url: `${window.location.origin}/predictions/${id}`,
+      });
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error("Share failed:", error);
+      }
+    }
+  } else {
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+      shareText
+    )}`;
+
+    window.open(whatsappUrl, "_blank");
+  }
+};
 
 
 
@@ -258,6 +287,8 @@ const handleRemovePick = () => {
         <span className="text-xs text-gray-500">
           Football prediction
         </span>
+
+      
 
         <Link
           to={`/predictions/${id}`}

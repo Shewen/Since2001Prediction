@@ -1,5 +1,5 @@
 
-import { ArrowLeft, Printer, Trash2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Printer, Trash2, CheckCircle2 , Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePicks } from "../context/PicksContext";
 
@@ -9,6 +9,44 @@ function MyPicksPage() {
   const handlePrint = () => {
     window.print();
   };
+
+
+  const handleShare = async () => {
+  if (picks.length === 0) return;
+
+  const shareText = `⚽ Since2001Prediction — My Picks
+
+${picks
+  .map(
+    (pick, index) =>
+      `${index + 1}. ${pick.homeTeam} vs ${pick.awayTeam}
+🔮 Prediction: ${pick.prediction}
+📊 Confidence: ${pick.confidence}%`
+  )
+  .join("\n\n")}
+
+Check more football predictions:
+${window.location.origin}/predictions`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "Since2001Prediction — My Picks",
+        text: shareText,
+      });
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error("Share failed:", error);
+      }
+    }
+  } else {
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+      shareText
+    )}`;
+
+    window.open(whatsappUrl, "_blank");
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#070b0f] px-4 py-8 text-white sm:px-6 lg:px-8 print:bg-white print:px-0 print:py-0 print:text-black">
@@ -36,14 +74,25 @@ function MyPicksPage() {
           </div>
 
           {picks.length > 0 && (
-            <button
-              onClick={handlePrint}
-              className="hidden items-center gap-2 rounded-xl bg-lime-400 px-4 py-3 text-sm font-black text-black shadow-lg shadow-lime-400/10 transition hover:bg-lime-300 sm:flex"
-            >
-              <Printer size={17} />
-              Print Ticket
-            </button>
-          )}
+  <div className="flex items-center gap-2">
+    <button
+      onClick={handleShare}
+      className="flex items-center gap-2 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-3 text-sm font-black text-lime-400 transition hover:bg-lime-400/20"
+    >
+      <Share2 size={17} />
+      <span className="hidden sm:inline">Share Picks</span>
+      <span className="sm:hidden">Share</span>
+    </button>
+
+    <button
+      onClick={handlePrint}
+      className="hidden items-center gap-2 rounded-xl bg-lime-400 px-4 py-3 text-sm font-black text-black shadow-lg shadow-lime-400/10 transition hover:bg-lime-300 sm:flex"
+    >
+      <Printer size={17} />
+      Print Ticket
+    </button>
+  </div>
+)}
         </div>
 
         {/* Empty State */}
