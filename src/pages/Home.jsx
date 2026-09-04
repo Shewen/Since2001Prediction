@@ -12,9 +12,23 @@ import LeagueCard from "../components/LeagueCard";
 import { getLeagues } from "../utils/leagueStorage";
 import ResultCard from "../components/ResultCard";
 
+const getNigeriaDate = () => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+};
+
 function Home() {
   const [predictions, setPredictions] = useState([]);
-
   const [results, setResults] = useState([]);
   const [leagues, setLeagues] = useState([]);
 const [loadingLeagues, setLoadingLeagues] = useState(true);
@@ -58,6 +72,18 @@ useEffect(() => {
       setLoadingResults(true);
 
       const data = await getPredictions();
+
+console.log("HOME PREDICTIONS:", data);
+console.log(
+  "TODAY:",
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+);
+
 
       setPredictions(data);
 
@@ -195,7 +221,7 @@ setLeagues(leagueData);
 
 
 
-      {/* Today's Predictions */}
+{/* Today's Predictions */}
 <section className="border-b border-white/10 bg-[#0a1015] py-20">
   <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
@@ -224,30 +250,55 @@ setLeagues(leagueData);
     </div>
 
     <div className="mt-10">
-  {loadingPredictions ? (
-    <p className="text-sm text-gray-500">
-      Loading today's predictions...
-    </p>
-  ) : predictions.length === 0 ? (
-    <div className="rounded-2xl border border-dashed border-white/10 bg-[#10171e] px-6 py-12 text-center">
-      <p className="text-sm text-gray-500">
-        No predictions available today.
-      </p>
+      {loadingPredictions ? (
+        <p className="text-sm text-gray-500">
+          Loading today's predictions...
+        </p>
+      ) : (
+        (() => {
+          const todayString = getNigeriaDate();
+
+          const todaysPredictions = predictions.filter((prediction) => {
+            const predictionDate = String(
+              prediction.date || ""
+            )
+              .trim()
+              .slice(0, 10);
+
+            return predictionDate === todayString;
+          });
+
+          console.log("Nigeria Today:", todayString);
+          console.log(
+            "Today's Predictions:",
+            todaysPredictions
+          );
+
+          if (todaysPredictions.length === 0) {
+            return (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-[#10171e] px-6 py-12 text-center">
+                <p className="text-sm text-gray-500">
+                  No predictions available today.
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {todaysPredictions
+                .slice(0, 3)
+                .map((prediction) => (
+                  <PredictionCard
+                    key={prediction.id}
+                    {...prediction}
+                  />
+                ))}
+            </div>
+          );
+        })()
+      )}
     </div>
-  ) : (
-    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-      {predictions
-        .filter((prediction) => prediction.date === "Today")
-        .slice(0, 3)
-        .map((prediction) => (
-          <PredictionCard
-            key={prediction.id}
-            {...prediction}
-          />
-        ))}
-    </div>
-  )}
-</div>
 
   </div>
 </section>
