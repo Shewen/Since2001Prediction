@@ -9,3 +9,4 @@
   from = "/api/football/*"
   to = "/.netlify/functions/football/:splat"
   status = 200
+  force = true
