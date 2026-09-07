@@ -31,9 +31,15 @@ const away = teams.find(
     team.name.toLowerCase() === String(awayTeam).toLowerCase()
 );
 
-const homeLogoUrl = home?.logo || homeLogo;
-const awayLogoUrl = away?.logo || awayLogo;
+const homeLogoUrl =
+  home?.logo ||
+  homeLogo ||
+  "https://cdn-icons-png.flaticon.com/512/53/53283.png";
 
+const awayLogoUrl =
+  away?.logo ||
+  awayLogo ||
+  "https://cdn-icons-png.flaticon.com/512/53/53283.png";
   const {
     addPick,
     removePick,

@@ -4,6 +4,8 @@ import { addPrediction } from "../../utils/predictionStorage";
 import { getTeamsByLeague } from "../../utils/teamStorage";
 import { getLeagues } from "../../utils/leagueStorage";
 import { useEffect, useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 function AddPrediction() {
   const navigate = useNavigate();
@@ -250,14 +252,27 @@ function AddPrediction() {
     Date
   </label>
 
-  <input
-    type="date"
-    name="date"
-    value={form.date}
-    onChange={handleChange}
-    required
-    className="h-12 w-full rounded-xl border border-white/10 bg-[#070b0f] px-4 py-3 text-sm text-white outline-none focus:border-lime-400/40"
-  />
+  <DatePicker
+  selected={
+    form.date
+      ? new Date(form.date + "T00:00:00")
+      : null
+  }
+  onChange={(date) => {
+    handleChange({
+      target: {
+        name: "date",
+        value: date
+          ? date.toISOString().split("T")[0]
+          : "",
+      },
+    });
+  }}
+  dateFormat="dd/MM/yyyy"
+  placeholderText="Select date"
+  required
+  className="h-12 w-full rounded-xl border border-white/10 bg-[#070b0f] px-4 py-3 text-sm text-white outline-none focus:border-lime-400/40 w-full"
+/>
 </div>
 
               {/* Time */}
@@ -266,14 +281,32 @@ function AddPrediction() {
                   Match Time
                 </label>
 
-                <input
-                  type="time"
-                  name="time"
-                  value={form.time}
-                  onChange={handleChange}
-                  required
-                  className="h-12 w-full rounded-xl border border-white/10 bg-[#070b0f] px-4 py-3 text-sm text-white outline-none focus:border-lime-400/40"
-                />
+                <DatePicker
+  selected={
+    form.time
+      ? new Date(`2000-01-01T${form.time}`)
+      : null
+  }
+  onChange={(time) => {
+    handleChange({
+      target: {
+        name: "time",
+        value: time
+          ? time.toTimeString().slice(0, 5)
+          : "",
+      },
+    });
+  }}
+  showTimeSelect
+  showTimeSelectOnly
+  timeIntervals={15}
+  timeCaption="Time"
+  timeFormat="HH:mm"
+  dateFormat="HH:mm"
+  placeholderText="Select time"
+  required
+  className="h-12 w-full rounded-xl border border-white/10 bg-[#070b0f] px-4 py-3 text-sm text-white outline-none focus:border-lime-400/40 w-full"
+/>
               </div>
 
               {/* Home Team */}
