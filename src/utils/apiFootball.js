@@ -1,5 +1,5 @@
 
-const API_URL = "/.netlify/functions/football";
+const API_URL = "/api/football";
 const API_KEY = import.meta.env.VITE_API_FOOTBALL_KEY;
 
 async function apiRequest(endpoint) {
@@ -158,5 +158,11 @@ export async function findFixture(
   });
 
   return fixture || null;
+}
+
+export async function searchTeams(search) {
+  return apiRequest(
+    `/teams?search=${encodeURIComponent(search)}`
+  );
 }
 

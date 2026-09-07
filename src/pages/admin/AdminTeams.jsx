@@ -1,17 +1,123 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 ,RefreshCw } from "lucide-react";
 
 import { getLeagues } from "../../utils/leagueStorage";
 import {
   getTeamsByLeague,
   addTeams,
   deleteTeam,
+  updateTeamLogo,
 } from "../../utils/teamStorage";
-import { getTeams } from "../../utils/apiFootball";
+
+import {
+  getTeams,
+  searchTeams,
+} from "../../utils/apiFootball";
 
 
+const championsLeague2026Teams = [
+  { name: "AEK Athens", aliases: ["AEK Athens"] },
+  { name: "Arsenal", aliases: ["Arsenal"] },
+  { name: "Aston Villa", aliases: ["Aston Villa"] },
+  {
+    name: "Atletico Madrid",
+    aliases: ["Atletico Madrid", "Atlético de Madrid", "Atleti"],
+  },
+  { name: "Barcelona", aliases: ["Barcelona", "FC Barcelona"] },
+  {
+    name: "Bayern Munich",
+    aliases: ["Bayern Munich", "Bayern München", "Bayern Munchen"],
+  },
+  {
+    name: "Bodo/Glimt",
+    aliases: ["Bodo/Glimt", "Bodø/Glimt", "Bodo Glimt", "Bodoe/Glimt"],
+  },
+  {
+    name: "Borussia Dortmund",
+    aliases: ["Borussia Dortmund", "Dortmund", "B. Dortmund"],
+  },
+  { name: "Club Brugge", aliases: ["Club Brugge", "Club Brugge KV"] },
+  { name: "Como", aliases: ["Como", "Como 1907"] },
+  { name: "Fenerbahce", aliases: ["Fenerbahce", "Fenerbahçe"] },
+  { name: "Feyenoord", aliases: ["Feyenoord"] },
+  { name: "Galatasaray", aliases: ["Galatasaray"] },
+  {
+    name: "Inter Milan",
+    aliases: ["Inter Milan", "Inter", "Inter Milano", "Internazionale"],
+  },
+  { name: "LASK", aliases: ["LASK", "LASK Linz"] },
+  {
+    name: "RB Leipzig",
+    aliases: ["RB Leipzig", "Leipzig", "RasenBallsport Leipzig"],
+  },
+  { name: "Lens", aliases: ["Lens", "RC Lens"] },
+  { name: "Lille", aliases: ["Lille", "Lille OSC"] },
+  { name: "Liverpool", aliases: ["Liverpool", "Liverpool FC"] },
+  {
+    name: "Manchester City",
+    aliases: ["Manchester City", "Man City"],
+  },
+  {
+    name: "Manchester United",
+    aliases: ["Manchester United", "Man United", "Man Utd"],
+  },
+  { name: "Napoli", aliases: ["Napoli", "SSC Napoli"] },
+  {
+    name: "Paris Saint-Germain",
+    aliases: [
+      "Paris Saint-Germain",
+      "Paris",
+      "PSG",
+      "Paris SG",
+      "Paris Saint Germain",
+    ],
+  },
+  { name: "Porto", aliases: ["Porto", "FC Porto"] },
+  {
+    name: "PSV Eindhoven",
+    aliases: ["PSV Eindhoven", "PSV"],
+  },
+  { name: "Real Betis", aliases: ["Real Betis", "Real Betis Balompie"] },
+  { name: "Real Madrid", aliases: ["Real Madrid", "Real Madrid CF"] },
+  { name: "Roma", aliases: ["Roma", "AS Roma"] },
+  { name: "Sabah", aliases: ["Sabah", "Sabah FC"] },
+  {
+    name: "Shakhtar Donetsk",
+    aliases: ["Shakhtar Donetsk", "Shakhtar"],
+  },
+  {
+    name: "Slavia Prague",
+    aliases: ["Slavia Prague", "Slavia Praha"],
+  },
+  {
+    name: "Slovan Bratislava",
+    aliases: ["Slovan Bratislava", "Slovan"],
+  },
+  {
+    name: "Sporting CP",
+    aliases: [
+      "Sporting CP",
+      "Sporting Lisbon",
+      "Sporting Clube de Portugal",
+    ],
+  },
+  {
+    name: "Stuttgart",
+    aliases: ["Stuttgart", "VfB Stuttgart"],
+  },
+  { name: "Viking", aliases: ["Viking", "Viking FK"] },
+  { name: "Villarreal", aliases: ["Villarreal", "Villarreal CF"] },
+];
 
+const normalizeTeamName = (name) => {
+  return String(name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+};
 
 
 function AdminTeams() {
@@ -19,7 +125,9 @@ function AdminTeams() {
   const [teams, setTeams] = useState([]);
 
   const [selectedLeague, setSelectedLeague] = useState("");
-
+const selectedLeagueData = leagues.find(
+  (league) => String(league.id) === String(selectedLeague)
+);
   const [loadingLeagues, setLoadingLeagues] = useState(true);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -109,7 +217,7 @@ function AdminTeams() {
     const apiLeagueId = selectedLeagueData.api_league_id;
 
     // API-Football Free plan supports seasons up to 2024
-    const season = 2024;
+    const season = 2026;
 
     // Get teams from API-Football
     const apiTeams = await getTeams(
@@ -173,6 +281,175 @@ function AdminTeams() {
     setError(
       "Failed to import teams. Check the console for details."
     );
+  } finally {
+    setSaving(false);
+  }
+};
+
+// Import official 2026/27 Champions League teams
+const handleImportChampionsLeague2026 = async () => {
+  if (!selectedLeague) {
+    alert("Please select the Champions League first.");
+    return;
+  }
+
+  if (!selectedLeagueData) {
+    alert("Champions League data could not be found.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "This will clean the Champions League teams and keep only the official 36 teams for 2026/27.\n\n" +
+      "Extra Champions League teams will be deleted.\n" +
+      "Other leagues will NOT be affected.\n\n" +
+      "Do you want to continue?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    setSaving(true);
+    setError("");
+
+    // Get all current teams in the selected league
+    const currentTeams = await getTeamsByLeague(selectedLeague);
+
+    const officialTeams = championsLeague2026Teams;
+
+    // Find teams that already exist
+    const existingOfficialTeams = officialTeams.filter((officialTeam) => {
+      return currentTeams.some((currentTeam) => {
+        const currentName = normalizeTeamName(currentTeam.name);
+
+        return officialTeam.aliases.some(
+          (alias) => normalizeTeamName(alias) === currentName
+        );
+      });
+    });
+
+    // Find teams that need to be added
+    const missingTeams = officialTeams.filter((officialTeam) => {
+      return !currentTeams.some((currentTeam) => {
+        const currentName = normalizeTeamName(currentTeam.name);
+
+        return officialTeam.aliases.some(
+          (alias) => normalizeTeamName(alias) === currentName
+        );
+      });
+    });
+
+    // Find unwanted teams
+    const unwantedTeams = currentTeams.filter((currentTeam) => {
+      const currentName = normalizeTeamName(currentTeam.name);
+
+      return !officialTeams.some((officialTeam) =>
+        officialTeam.aliases.some(
+          (alias) => normalizeTeamName(alias) === currentName
+        )
+      );
+    });
+
+    console.log("Current Champions League teams:", currentTeams.length);
+    console.log("Official teams:", officialTeams.length);
+    console.log("Teams already correct:", existingOfficialTeams.length);
+    console.log("Missing teams:", missingTeams);
+    console.log("Unwanted teams:", unwantedTeams);
+
+    // Delete unwanted teams
+    for (const team of unwantedTeams) {
+      await deleteTeam(team.id);
+    }
+
+    // Add missing official teams
+    if (missingTeams.length > 0) {
+      const teamsToAdd = missingTeams.map((team) => ({
+        name: team.name,
+        league_id: selectedLeague,
+        logo: "",
+      }));
+
+      await addTeams(teamsToAdd);
+    }
+
+    // Reload the teams
+    const updatedTeams = await getTeamsByLeague(selectedLeague);
+    setTeams(updatedTeams);
+
+    alert(
+      `Champions League cleaned successfully!\n\n` +
+        `Official teams: ${officialTeams.length}\n` +
+        `Removed: ${unwantedTeams.length}\n` +
+        `Added: ${missingTeams.length}`
+    );
+  } catch (err) {
+    console.error("Failed to clean Champions League teams:", err);
+
+    setError(
+      err?.message || "Failed to clean Champions League teams."
+    );
+
+    alert("Failed to clean Champions League teams. Check the console.");
+  } finally {
+    setSaving(false);
+  }
+};
+
+const handleUpdateMissingLogos = async () => {
+  if (!selectedLeague) {
+    setError("Please select a league.");
+    return;
+  }
+
+  try {
+    setSaving(true);
+    setError("");
+
+    const leagueTeams = await getTeamsByLeague(selectedLeague);
+
+    const teamsWithoutLogos = leagueTeams.filter(
+      (team) => !team.logo
+    );
+
+    if (teamsWithoutLogos.length === 0) {
+      setError("All teams already have logos.");
+      return;
+    }
+
+    for (const team of teamsWithoutLogos) {
+      try {
+        const results = await searchTeams(team.name);
+
+        const match = results?.find(
+          (item) =>
+            item.team?.name?.toLowerCase() ===
+            team.name.toLowerCase()
+        );
+
+        if (match?.team?.logo) {
+          const updatedTeam = await updateTeamLogo(
+            team.id,
+            match.team.logo
+          );
+
+          setTeams((current) =>
+            current.map((item) =>
+              item.id === updatedTeam.id
+                ? updatedTeam
+                : item
+            )
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Failed to update logo for ${team.name}:`,
+          error
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Failed to update team logos:", error);
+
+    setError("Failed to update team logos.");
   } finally {
     setSaving(false);
   }
@@ -315,6 +592,31 @@ function AdminTeams() {
                     ? "Importing..."
                     : "Import League Teams"}
                 </button>
+
+     {selectedLeagueData?.api_league_id === 2 && (
+  <>
+    <button
+      type="button"
+      onClick={handleImportChampionsLeague2026}
+      disabled={saving || loadingLeagues || !selectedLeague}
+      className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-lime-400/30 bg-lime-400/10 text-sm font-black text-lime-400 transition hover:bg-lime-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {saving ? "Cleaning..." : "Clean Champions League Teams"}
+    </button>
+
+    <button
+      type="button"
+      onClick={handleUpdateMissingLogos}
+      disabled={saving || loadingLeagues || !selectedLeague}
+      className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-400/10 text-sm font-black text-blue-400 transition hover:bg-blue-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {saving ? "Updating Logos..." : "Update Missing Logos"}
+    </button>
+  </>
+)}
+
+
+
 
                 <p className="mt-3 text-center text-xs text-gray-500">
                   Import all available teams for the
