@@ -84,7 +84,8 @@ export async function getPredictions() {
       supabase
         .from("predictions")
         .select("*")
-        .order("id", { ascending: true }),
+        .order("date", { ascending: false })
+        .order("time", { ascending: false }),
 
       supabase
         .from("teams")
