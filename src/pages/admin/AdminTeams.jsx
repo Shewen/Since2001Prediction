@@ -415,30 +415,63 @@ const handleUpdateMissingLogos = async () => {
       return;
     }
 
+    let updatedCount = 0;
+
     for (const team of teamsWithoutLogos) {
       try {
+        console.log(`Searching logo for: ${team.name}`);
+
         const results = await searchTeams(team.name);
 
-        const match = results?.find(
-          (item) =>
-            item.team?.name?.toLowerCase() ===
-            team.name.toLowerCase()
+        console.log(`API results for ${team.name}:`, results);
+
+        if (!results || results.length === 0) {
+          console.log(`No API result found for ${team.name}`);
+          continue;
+        }
+
+        const databaseName = normalizeTeamName(team.name);
+
+        // Find the closest matching team
+        const match =
+          results.find((item) => {
+            const apiName = normalizeTeamName(
+              item.team?.name
+            );
+
+            return (
+              apiName === databaseName ||
+              apiName.includes(databaseName) ||
+              databaseName.includes(apiName)
+            );
+          }) || results[0];
+
+        const logo = match?.team?.logo;
+
+        if (!logo) {
+          console.log(`No logo found for ${team.name}`);
+          continue;
+        }
+
+        console.log(
+          `Updating ${team.name} with logo:`,
+          logo
         );
 
-        if (match?.team?.logo) {
-          const updatedTeam = await updateTeamLogo(
-            team.id,
-            match.team.logo
-          );
+        const updatedTeam = await updateTeamLogo(
+          team.id,
+          logo
+        );
 
-          setTeams((current) =>
-            current.map((item) =>
-              item.id === updatedTeam.id
-                ? updatedTeam
-                : item
-            )
-          );
-        }
+        setTeams((current) =>
+          current.map((item) =>
+            item.id === updatedTeam.id
+              ? updatedTeam
+              : item
+          )
+        );
+
+        updatedCount++;
       } catch (error) {
         console.error(
           `Failed to update logo for ${team.name}:`,
@@ -446,10 +479,27 @@ const handleUpdateMissingLogos = async () => {
         );
       }
     }
-  } catch (error) {
-    console.error("Failed to update team logos:", error);
 
-    setError("Failed to update team logos.");
+    if (updatedCount === 0) {
+      setError(
+        "No team logos were updated. Check the browser console for API results."
+      );
+    } else {
+      setError(
+        `${updatedCount} team logo${
+          updatedCount !== 1 ? "s" : ""
+        } updated successfully.`
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Failed to update team logos:",
+      error
+    );
+
+    setError(
+      "Failed to update team logos. Check the console for details."
+    );
   } finally {
     setSaving(false);
   }
@@ -592,28 +642,25 @@ const handleUpdateMissingLogos = async () => {
                     ? "Importing..."
                     : "Import League Teams"}
                 </button>
-
-     {selectedLeagueData?.api_league_id === 2 && (
-  <>
-    <button
-      type="button"
-      onClick={handleImportChampionsLeague2026}
-      disabled={saving || loadingLeagues || !selectedLeague}
-      className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-lime-400/30 bg-lime-400/10 text-sm font-black text-lime-400 transition hover:bg-lime-400/20 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {saving ? "Cleaning..." : "Clean Champions League Teams"}
-    </button>
-
-    <button
-      type="button"
-      onClick={handleUpdateMissingLogos}
-      disabled={saving || loadingLeagues || !selectedLeague}
-      className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-400/10 text-sm font-black text-blue-400 transition hover:bg-blue-400/20 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {saving ? "Updating Logos..." : "Update Missing Logos"}
-    </button>
-  </>
+{selectedLeagueData?.api_league_id === 2 && (
+  <button
+    type="button"
+    onClick={handleImportChampionsLeague2026}
+    disabled={saving || loadingLeagues || !selectedLeague}
+    className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-lime-400/30 bg-lime-400/10 text-sm font-black text-lime-400 transition hover:bg-lime-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+  >
+    {saving ? "Cleaning..." : "Clean Champions League Teams"}
+  </button>
 )}
+
+<button
+  type="button"
+  onClick={handleUpdateMissingLogos}
+  disabled={saving || loadingLeagues || !selectedLeague}
+  className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-400/10 text-sm font-black text-blue-400 transition hover:bg-blue-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {saving ? "Updating Logos..." : "Update Missing Logos"}
+</button>
 
 
 

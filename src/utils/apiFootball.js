@@ -160,9 +160,10 @@ export async function findFixture(
   return fixture || null;
 }
 
-export async function searchTeams(search) {
+
+
+export async function searchTeams(search = "") {
   return apiRequest(
     `/teams?search=${encodeURIComponent(search)}`
   );
 }
-
