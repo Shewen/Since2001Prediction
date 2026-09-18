@@ -56,9 +56,47 @@ export default async (request) => {
       supabaseKey
     );
 
+    // Find the team and its football-data.org ID
+    const { data: team, error: teamError } = await supabase
+      .from("teams")
+      .select("id, name, football_data_id")
+      .eq("id", Number(teamId))
+      .single();
+
+    if (teamError || !team) {
+      return new Response(
+        JSON.stringify({
+          error: "Team not found",
+          details: teamError,
+        }),
+        {
+          status: 404,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    if (!team.football_data_id) {
+      return new Response(
+        JSON.stringify({
+          error: "Football-Data.org ID is not configured for this team",
+          teamId: team.id,
+          teamName: team.name,
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
     // Get the team's recent finished matches
     const apiUrl =
-      `https://api.football-data.org/v4/teams/${teamId}/matches` +
+      `https://api.football-data.org/v4/teams/${team.football_data_id}/matches` +
       `?status=FINISHED&limit=5`;
 
     const response = await fetch(apiUrl, {
@@ -90,6 +128,7 @@ export default async (request) => {
       return new Response(
         JSON.stringify({
           error: "No finished matches found",
+          team: team.name,
         }),
         {
           status: 404,
@@ -103,7 +142,8 @@ export default async (request) => {
     const form = matches
       .slice(0, 5)
       .map((match) => {
-        const isHome = match.homeTeam.id === Number(teamId);
+        const isHome =
+          match.homeTeam.id === Number(team.football_data_id);
 
         const teamScore = isHome
           ? match.score.fullTime.home
@@ -119,6 +159,7 @@ export default async (request) => {
       })
       .join(" ");
 
+    // Save the form against the correct Supabase team
     const { error: updateError } = await supabase
       .from("teams")
       .update({
@@ -145,7 +186,9 @@ export default async (request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        teamId: Number(teamId),
+        teamId: team.id,
+        teamName: team.name,
+        footballDataId: team.football_data_id,
         form,
         matchesUsed: matches.length,
       }),
