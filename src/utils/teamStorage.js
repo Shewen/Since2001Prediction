@@ -6,6 +6,8 @@ const formatTeam = (item) => ({
   name: item.name,
   logo: item.logo,
   leagueId: item.league_id,
+  form: item.form || null,
+  formUpdatedAt: item.form_updated_at || null,
 });
 
 // Get all teams

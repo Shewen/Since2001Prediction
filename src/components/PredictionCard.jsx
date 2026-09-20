@@ -13,6 +13,8 @@ function PredictionCard({
   awayTeam,
   homeLogo,
   awayLogo,
+  homeForm,
+  awayForm,
   prediction,
   confidence,
   markets,
@@ -165,7 +167,24 @@ ${window.location.origin}/predictions/${id}`;
           <p className="mt-2 truncate text-sm font-bold">
             {homeName}
           </p>
-
+      {homeForm && (
+  <div className="mt-2 flex justify-center gap-1">
+    {homeForm.replace(/\s/g, "").split("").map((result, index) => (
+      <span
+        key={index}
+        className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+          result === "W"
+            ? "bg-green-500/20 text-green-400"
+            : result === "D"
+            ? "bg-yellow-500/20 text-yellow-400"
+            : "bg-red-500/20 text-red-400"
+        }`}
+      >
+        {result}
+      </span>
+    ))}
+  </div>
+)}
         </div>
 
         {/* VS */}
@@ -193,7 +212,24 @@ ${window.location.origin}/predictions/${id}`;
           <p className="mt-2 truncate text-sm font-bold">
             {awayName}
           </p>
-
+      {awayForm && (
+  <div className="mt-2 flex justify-center gap-1">
+    {awayForm.replace(/\s/g, "").split("").map((result, index) => (
+      <span
+        key={index}
+        className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+          result === "W"
+            ? "bg-green-500/20 text-green-400"
+            : result === "D"
+            ? "bg-yellow-500/20 text-yellow-400"
+            : "bg-red-500/20 text-red-400"
+        }`}
+      >
+        {result}
+      </span>
+    ))}
+  </div>
+)}
         </div>
 
       </div>

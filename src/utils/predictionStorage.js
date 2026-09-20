@@ -7,6 +7,8 @@ import { supabase } from "../lib/supabase";
 const normalizeTeamName = (name = "") => {
   return name
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]/g, "");
 };
 
@@ -21,6 +23,8 @@ const formatPrediction = (item, teams = []) => {
     item.away_team
   );
 
+
+ 
   const homeTeam = teams.find(
     (team) => {
       const teamName = normalizeTeamName(team.name);
@@ -63,6 +67,15 @@ const formatPrediction = (item, teams = []) => {
     homeLogo: item.home_logo || homeTeam?.logo || "",
     awayLogo: item.away_logo || awayTeam?.logo || "",
 
+
+
+    
+homeForm: homeTeam?.form || null,
+awayForm: awayTeam?.form || null,
+
+homeFormUpdatedAt: homeTeam?.form_updated_at || null,
+awayFormUpdatedAt: awayTeam?.form_updated_at || null,
+
     prediction: item.prediction,
 
     premium: item.premium,
@@ -88,8 +101,8 @@ export async function getPredictions() {
         .order("time", { ascending: false }),
 
       supabase
-        .from("teams")
-        .select("id, name, logo"),
+  .from("teams")
+  .select("id, name, logo, form, form_updated_at"),
     ]);
 
   if (error) {
@@ -102,9 +115,37 @@ export async function getPredictions() {
     throw teamsError;
   }
 
-  return data.map((item) =>
-    formatPrediction(item, teams || [])
-  );
+  const teamFormMap = {};
+
+(teams || []).forEach((team) => {
+  teamFormMap[normalizeTeamName(team.name)] = {
+    form: team.form || null,
+    formUpdatedAt: team.form_updated_at || null,
+  };
+});
+
+return data.map((item) => {
+  const prediction = formatPrediction(item, teams || []);
+
+  const homeKey = normalizeTeamName(item.home_team);
+  const awayKey = normalizeTeamName(item.away_team);
+
+  return {
+    ...prediction,
+    homeForm:
+      teamFormMap[homeKey]?.form || prediction.homeForm || null,
+    awayForm:
+      teamFormMap[awayKey]?.form || prediction.awayForm || null,
+    homeFormUpdatedAt:
+      teamFormMap[homeKey]?.formUpdatedAt ||
+      prediction.homeFormUpdatedAt ||
+      null,
+    awayFormUpdatedAt:
+      teamFormMap[awayKey]?.formUpdatedAt ||
+      prediction.awayFormUpdatedAt ||
+      null,
+  };
+});
 };
 
 

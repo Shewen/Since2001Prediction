@@ -85,6 +85,7 @@ console.log(
 );
 
 
+
       setPredictions(data);
 
       const leagueData = await getLeagues();
