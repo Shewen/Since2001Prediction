@@ -33,7 +33,7 @@ export default async (request) => {
     // ?batch=4
     const batchNumber = Number(url.searchParams.get("batch") || 1);
 
-    const batchSize = 5;
+    const batchSize = 2;
 
     const { data: teams, error: teamsError } = await supabase
       .from("teams")
