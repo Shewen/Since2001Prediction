@@ -24,7 +24,17 @@ export default async (request) => {
       );
     }
 
-    // Get all teams that have a football-data.org ID
+    const url = new URL(request.url);
+
+    // Example:
+    // ?batch=1
+    // ?batch=2
+    // ?batch=3
+    // ?batch=4
+    const batchNumber = Number(url.searchParams.get("batch") || 1);
+
+    const batchSize = 5;
+
     const { data: teams, error: teamsError } = await supabase
       .from("teams")
       .select("id, name, football_data_id")
@@ -35,15 +45,18 @@ export default async (request) => {
       throw teamsError;
     }
 
+    const start = (batchNumber - 1) * batchSize;
+    const batchTeams = teams.slice(start, start + batchSize);
+
     const results = [];
 
-    for (const team of teams) {
+    for (const team of batchTeams) {
       try {
-        const url =
+        const apiUrl =
           `https://api.football-data.org/v4/teams/${team.football_data_id}/matches` +
           `?status=FINISHED&limit=5`;
 
-        const response = await fetch(url, {
+        const response = await fetch(apiUrl, {
           headers: {
             "X-Auth-Token": token,
           },
@@ -60,27 +73,22 @@ export default async (request) => {
             error: errorText,
           });
 
-          // Wait before the next request
           await sleep(7000);
           continue;
         }
 
         const data = await response.json();
 
-        const matches = data.matches || [];
+        const matches = (data.matches || [])
+          .sort(
+            (a, b) =>
+              new Date(b.utcDate).getTime() -
+              new Date(a.utcDate).getTime()
+          )
+          .slice(0, 5);
 
-        // Make sure newest matches come first
-        matches.sort(
-          (a, b) => new Date(b.utcDate) - new Date(a.utcDate)
-        );
-
-        const recentMatches = matches.slice(0, 5);
-
-        const form = recentMatches
+        const form = matches
           .map((match) => {
-            const homeTeamId = match.homeTeam?.id;
-            const awayTeamId = match.awayTeam?.id;
-
             const homeScore = match.score?.fullTime?.home;
             const awayScore = match.score?.fullTime?.away;
 
@@ -93,11 +101,12 @@ export default async (request) => {
               return null;
             }
 
-            const isHome = homeTeamId === team.football_data_id;
-
             if (homeScore === awayScore) {
               return "D";
             }
+
+            const isHome =
+              match.homeTeam?.id === team.football_data_id;
 
             if (isHome) {
               return homeScore > awayScore ? "W" : "L";
@@ -126,10 +135,9 @@ export default async (request) => {
           footballDataId: team.football_data_id,
           success: true,
           form,
-          matchesUsed: recentMatches.length,
+          matchesUsed: matches.length,
         });
 
-        // Free plan is limited to 10 requests/minute.
         await sleep(7000);
       } catch (error) {
         results.push({
@@ -147,9 +155,10 @@ export default async (request) => {
     return new Response(
       JSON.stringify({
         success: true,
+        batch: batchNumber,
+        batchSize,
         totalTeams: teams.length,
-        updated: results.filter((item) => item.success).length,
-        failed: results.filter((item) => !item.success).length,
+        teamsInThisBatch: batchTeams.length,
         results,
       }),
       {
@@ -160,7 +169,7 @@ export default async (request) => {
       }
     );
   } catch (error) {
-    console.error("Update all forms error:", error);
+    console.error("Update forms error:", error);
 
     return new Response(
       JSON.stringify({
