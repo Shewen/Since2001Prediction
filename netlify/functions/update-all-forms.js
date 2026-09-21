@@ -26,23 +26,51 @@ export default async (request) => {
 
     const url = new URL(request.url);
 
-    // Example:
-    // ?batch=1
-    // ?batch=2
-    // ?batch=3
-    // ?batch=4
     const batchNumber = Number(url.searchParams.get("batch") || 1);
+    const leagueId = Number(url.searchParams.get("league"));
+
+    if (!leagueId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "league parameter is required",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
     const batchSize = 2;
 
     const { data: teams, error: teamsError } = await supabase
       .from("teams")
-      .select("id, name, football_data_id")
+      .select("id, name, football_data_id, league_id")
+      .eq("league_id", leagueId)
       .not("football_data_id", "is", null)
       .order("id");
 
     if (teamsError) {
       throw teamsError;
+    }
+
+    const totalBatches = Math.ceil(teams.length / batchSize);
+
+    if (batchNumber < 1 || batchNumber > totalBatches) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Invalid batch. League ${leagueId} has ${totalBatches} batches.`,
+          leagueId,
+          totalTeams: teams.length,
+          totalBatches,
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
     const start = (batchNumber - 1) * batchSize;
@@ -155,9 +183,11 @@ export default async (request) => {
     return new Response(
       JSON.stringify({
         success: true,
+        leagueId,
         batch: batchNumber,
         batchSize,
         totalTeams: teams.length,
+        totalBatches,
         teamsInThisBatch: batchTeams.length,
         results,
       }),
@@ -178,9 +208,7 @@ export default async (request) => {
       }),
       {
         status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       }
     );
   }
