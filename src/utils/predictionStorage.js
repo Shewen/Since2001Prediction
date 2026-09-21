@@ -62,6 +62,7 @@ const formatPrediction = (item, teams = []) => {
     date: item.date,
     time: item.time,
 
+    
     homeTeam: item.home_team,
     awayTeam: item.away_team,
 
@@ -93,7 +94,11 @@ awayFormUpdatedAt: awayTeam?.form_updated_at || null,
 
 // Get all predictions
 export async function getPredictions() {
-  const [{ data, error }, { data: teams, error: teamsError }] =
+  const [
+  { data, error },
+  { data: teams, error: teamsError },
+  { data: leagues, error: leaguesError },
+] =
     await Promise.all([
       supabase
         .from("predictions")
@@ -103,7 +108,11 @@ export async function getPredictions() {
 
       supabase
   .from("teams")
-  .select("id, name, logo, form, form_updated_at"),
+  .select("id, name, logo, form, form_updated_at, league_id"),
+
+  supabase
+  .from("leagues")
+  .select("id, name"),
     ]);
 
   if (error) {
@@ -115,11 +124,23 @@ export async function getPredictions() {
     console.error("Error fetching teams:", teamsError);
     throw teamsError;
   }
+if (leaguesError) {
+  console.error("Error fetching leagues:", leaguesError);
+  throw leaguesError;
+}
 
-  const teamFormMap = {};
+const leagueMap = {};
+
+(leagues || []).forEach((league) => {
+  leagueMap[league.name.toLowerCase().trim()] = league.id;
+});
+
+ const teamFormMap = {};
 
 (teams || []).forEach((team) => {
-  teamFormMap[normalizeTeamName(team.name)] = {
+  const key = `${team.league_id}:${normalizeTeamName(team.name)}`;
+
+  teamFormMap[key] = {
     form: team.form || null,
     formUpdatedAt: team.form_updated_at || null,
   };
@@ -128,24 +149,33 @@ export async function getPredictions() {
 return data.map((item) => {
   const prediction = formatPrediction(item, teams || []);
 
-  const homeKey = normalizeTeamName(item.home_team);
-  const awayKey = normalizeTeamName(item.away_team);
+const leagueId = leagueMap[
+  String(item.league || "").toLowerCase().trim()
+];
 
-  return {
-    ...prediction,
-    homeForm:
-      teamFormMap[homeKey]?.form || prediction.homeForm || null,
-    awayForm:
-      teamFormMap[awayKey]?.form || prediction.awayForm || null,
-    homeFormUpdatedAt:
-      teamFormMap[homeKey]?.formUpdatedAt ||
-      prediction.homeFormUpdatedAt ||
-      null,
-    awayFormUpdatedAt:
-      teamFormMap[awayKey]?.formUpdatedAt ||
-      prediction.awayFormUpdatedAt ||
-      null,
-  };
+const homeKey = `${leagueId}:${normalizeTeamName(item.home_team)}`;
+
+const awayKey = `${leagueId}:${normalizeTeamName(item.away_team)}`;
+
+return {
+  ...prediction,
+
+  homeForm:
+    teamFormMap[homeKey]?.form || prediction.homeForm || null,
+
+  awayForm:
+    teamFormMap[awayKey]?.form || prediction.awayForm || null,
+
+  homeFormUpdatedAt:
+    teamFormMap[homeKey]?.formUpdatedAt ||
+    prediction.homeFormUpdatedAt ||
+    null,
+
+  awayFormUpdatedAt:
+    teamFormMap[awayKey]?.formUpdatedAt ||
+    prediction.awayFormUpdatedAt ||
+    null,
+};
 });
 };
 
