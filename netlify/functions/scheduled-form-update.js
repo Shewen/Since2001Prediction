@@ -2,11 +2,12 @@ export default async () => {
   try {
     const siteUrl = "https://since2001prediction.netlify.app";
 
-    const hour = new Date().getUTCHours();
+   const now = new Date();
+const hoursSinceEpoch = Math.floor(
+  now.getTime() / (3 * 60 * 60 * 1000)
+);
 
-    // Run one batch each hour.
-    // 9 batches = complete refresh every 9 hours.
-    const batchNumber = (hour % 9) + 1;
+const batchNumber = (hoursSinceEpoch % 9) + 1;
 
     const updateUrl =
       `${siteUrl}/.netlify/functions/update-all-forms?batch=${batchNumber}`;
@@ -25,5 +26,5 @@ export default async () => {
 };
 
 export const config = {
-  schedule: "0 * * * *",
+  schedule: "0 */3 * * *",
 };
