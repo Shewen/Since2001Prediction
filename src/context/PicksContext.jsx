@@ -34,6 +34,21 @@ export function PicksProvider({ children }) {
     return picks.some((pick) => pick.id === id);
   };
 
+  const updatePickResult = (id, resultStatus, homeScore, awayScore) => {
+    setPicks((current) =>
+      current.map((pick) =>
+        pick.id === id
+          ? {
+              ...pick,
+              resultStatus,
+              homeScore,
+              awayScore,
+            }
+          : pick
+      )
+    );
+  };
+
   return (
     <PicksContext.Provider
       value={{
@@ -42,6 +57,7 @@ export function PicksProvider({ children }) {
         removePick,
         clearPicks,
         isPicked,
+        updatePickResult,
       }}
     >
       {children}

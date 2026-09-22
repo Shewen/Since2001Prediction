@@ -1,11 +1,43 @@
-
+import { useEffect } from "react";
 import { ArrowLeft, Printer, Trash2, CheckCircle2 , Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePicks } from "../context/PicksContext";
 
 function MyPicksPage() {
-  const { picks, removePick, clearPicks } = usePicks();
+const { picks, removePick, clearPicks, updatePickResult } = usePicks();
 
+useEffect(() => {
+  const refreshPickResults = async () => {
+    try {
+      const latestPredictions = await getPredictions();
+
+      latestPredictions.forEach((prediction) => {
+        const currentPick = picks.find(
+          (pick) => pick.id === prediction.id
+        );
+
+        if (
+          currentPick &&
+          prediction.resultStatus &&
+          prediction.resultStatus !== currentPick.resultStatus
+        ) {
+          updatePickResult(
+            prediction.id,
+            prediction.resultStatus,
+            prediction.homeScore,
+            prediction.awayScore
+          );
+        }
+      });
+    } catch (error) {
+      console.error("Failed to refresh pick results:", error);
+    }
+  };
+
+  if (picks.length > 0) {
+    refreshPickResults();
+  }
+}, [picks, updatePickResult]);
   const handlePrint = () => {
     window.print();
   };
@@ -244,47 +276,66 @@ ${window.location.origin}/predictions`;
                     </div>
 
                     {/* Prediction Box */}
-                    <div className="mt-6 overflow-hidden rounded-2xl border border-lime-400/20 bg-lime-400/[0.04] print:border-gray-300 print:bg-gray-50">
+                    {/* Prediction / Result Box */}
+<div className="mt-6 overflow-hidden rounded-2xl border border-lime-400/20 bg-lime-400/[0.04] print:border-gray-300 print:bg-gray-50">
 
-                      <div className="flex items-center justify-between border-b border-lime-400/10 px-4 py-3 print:border-gray-200">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
-                          Prediction
-                        </span>
+  <div className="flex items-center justify-between border-b border-lime-400/10 px-4 py-3 print:border-gray-200">
+    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
+      Prediction
+    </span>
 
-                        <span className="rounded-full bg-lime-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-lime-400 print:bg-gray-200 print:text-black">
-                          Selected
-                        </span>
-                      </div>
+    {pick.resultStatus === "won" ? (
+      <span className="rounded-full bg-green-500/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-green-400 print:bg-gray-200 print:text-black">
+        ✓ WON
+      </span>
+    ) : pick.resultStatus === "lost" ? (
+      <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-red-400 print:bg-gray-200 print:text-black">
+        ✕ LOST
+      </span>
+    ) : (
+      <span className="rounded-full bg-lime-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-lime-400 print:bg-gray-200 print:text-black">
+        Selected
+      </span>
+    )}
+  </div>
 
-                      <div className="px-4 py-5 text-center">
-                        <p className="text-xl font-black text-lime-400 print:text-black">
-                          {pick.prediction}
-                        </p>
+  <div className="px-4 py-5 text-center">
+    <p className="text-xl font-black text-lime-400 print:text-black">
+      {pick.prediction}
+    </p>
 
-                        {pick.confidence !== undefined && (
-                          <div className="mx-auto mt-4 max-w-xs">
-                            <div className="mb-2 flex items-center justify-between text-[10px] font-bold text-gray-500">
-                              <span>Confidence</span>
-                              <span className="text-white print:text-black">
-                                {pick.confidence}%
-                              </span>
-                            </div>
+    {pick.homeScore !== undefined &&
+      pick.awayScore !== undefined &&
+      pick.resultStatus !== "pending" && (
+        <p className="mt-3 text-sm font-black text-white print:text-black">
+          Final Score: {pick.homeScore} - {pick.awayScore}
+        </p>
+      )}
 
-                            <div className="h-1.5 overflow-hidden rounded-full bg-white/10 print:bg-gray-200">
-                              <div
-                                className="h-full rounded-full bg-lime-400 print:bg-black"
-                                style={{
-                                  width: `${Math.min(
-                                    100,
-                                    Math.max(0, Number(pick.confidence))
-                                  )}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+    {pick.confidence !== undefined && (
+      <div className="mx-auto mt-4 max-w-xs">
+        <div className="mb-2 flex items-center justify-between text-[10px] font-bold text-gray-500">
+          <span>Confidence</span>
+          <span className="text-white print:text-black">
+            {pick.confidence}%
+          </span>
+        </div>
+
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/10 print:bg-gray-200">
+          <div
+            className="h-full rounded-full bg-lime-400 print:bg-black"
+            style={{
+              width: `${Math.min(
+                100,
+                Math.max(0, Number(pick.confidence))
+              )}%`,
+            }}
+          />
+        </div>
+      </div>
+    )}
+  </div>
+</div>
                   </div>
                 ))}
               </div>

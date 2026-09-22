@@ -1,5 +1,6 @@
 
 import { ArrowRight, Lock, Share2, TrendingUp } from "lucide-react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import teams from "../data/teams";
 import { usePicks } from "../context/PicksContext";
@@ -19,6 +20,7 @@ function PredictionCard({
   confidence,
   markets,
   premium = false,
+  
 })  {
 
   const home = teams.find(
@@ -57,7 +59,15 @@ const awayLogoUrl =
   const homeName = home?.name || homeTeam;
   const awayName = away?.name || awayTeam;
 
+const isFinished = useMemo(() => {
+  if (!date || !time) return false;
 
+  const matchDateTime = new Date(`${date}T${time}`);
+
+  if (Number.isNaN(matchDateTime.getTime())) return false;
+
+  return new Date() >= matchDateTime;
+}, [date, time]);
 
 
 const handleAddPick = () => {
@@ -298,30 +308,37 @@ ${window.location.origin}/predictions/${id}`;
 
       </div>
 
-     {/* Add / Remove */}
-{!premium && (
-  <button
-    type="button"
-    onClick={picked ? handleRemovePick : handleAddPick}
-    className={`mx-4 mb-4 flex w-[calc(100%-2rem)] items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition ${
-      picked
-        ? "border border-lime-400/30 bg-lime-400/10 text-lime-400"
-        : "bg-lime-400 text-black hover:bg-lime-300"
-    }`}
-  >
-    {picked ? (
-      <>
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-lime-400 text-xs font-black text-black">
-          {pickNumber}
-        </span>
+{/* Finished / Add to My Picks */}
+{isFinished ? (
+  <div className="mx-4 mb-4 flex w-[calc(100%-2rem)] items-center justify-center rounded-xl bg-white/5 py-3 text-sm font-black text-gray-400">
+    FINISHED
+  </div>
+) : (
+  !premium && (
+    <button
+      type="button"
+      onClick={picked ? handleRemovePick : handleAddPick}
+      className={`mx-4 mb-4 flex w-[calc(100%-2rem)] items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition ${
+        picked
+          ? "border border-lime-400/30 bg-lime-400/10 text-lime-400"
+          : "bg-lime-400 text-black hover:bg-lime-300"
+      }`}
+    >
+      {picked ? (
+        <>
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-lime-400 text-xs font-black text-black">
+            {pickNumber}
+          </span>
 
-        Pick #{pickNumber}
-      </>
-    ) : (
-      "+ Add to My Picks"
-    )}
-  </button>
+          Pick #{pickNumber}
+        </>
+      ) : (
+        "+ Add to My Picks"
+      )}
+    </button>
+  )
 )}
+
 
       {/* Footer */}
       <div className="flex items-center justify-between px-4 pb-4">
